@@ -5,16 +5,18 @@ require("dotenv").config();
 
 // Application Dependencies
 const express = require("express");
-const router = express.Router();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const path = require("path");
+const hbs = require("nodemailer-express-handlebars");
 
 // Application Setup
 const PORT = process.env.PORT;
 const EMAIL = process.env.EMAIL;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const app = express();
+
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -31,17 +33,34 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+transporter.use(
+  "compile",
+  hbs({
+    // viewEngine: "express-handlebars",
+    // viewPath: "./views/",
+    viewEngine: {
+      extName: ".hbs",
+      partialsDir: path.resolve(__dirname, "./views/"),
+      defaultLayout: false,
+    },
+
+    viewPath: path.resolve(__dirname, "./views/"),
+
+    extName: ".hbs",
+  })
+);
+
 // Route Definitions
 app.post("/send-mail", sendMail);
 
 function sendMail(request, response) {
-  console.log(request.body);
   const participant = request.body;
   const mailOptions = {
     from: participant.email,
     to: EMAIL,
     subject: `${participant.subject} - From ${participant.firstName} ${participant.lastName}`,
-    text: participant.message,
+    template: "index",
+    context: { participant: participant, received: new Date() },
   };
   transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
@@ -49,7 +68,27 @@ function sendMail(request, response) {
       response.json({ status: false });
     } else {
       console.log("Email sent: " + info.response);
+      sendResponse(participant);
       response.json({ status: true });
+    }
+  });
+}
+
+function sendResponse(params) {
+  const mailOptions = {
+    from: EMAIL,
+    to: params.email,
+    subject: `Thank you ${params.firstName} for contacting me`,
+    template: "response",
+    context: { participant: params },
+  };
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+      response.json({ status: false });
+    } else {
+      console.log("Email sent: " + info.response);
+      // response.json({ status: true });
     }
   });
 }
