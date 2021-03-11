@@ -42,6 +42,10 @@ transporter.use(
       extName: ".hbs",
       partialsDir: path.resolve(__dirname, "./views/"),
       defaultLayout: false,
+      // partialsDir: [
+      //   //  path to your partials
+      //   path.join(__dirname, "./views/partials"),
+      // ],
     },
 
     viewPath: path.resolve(__dirname, "./views/"),
