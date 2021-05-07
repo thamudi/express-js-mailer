@@ -1,101 +1,50 @@
-"use strict";
+'use strict';
 
-// Load Environment Variables from the .env file
-require("dotenv").config();
+/* 
+------------------ 
+Server Dependencies
+------------------ 
+*/
+const express = require('express');
+require('dotenv').config({ path: './config/.env' });
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
 
-// Application Dependencies
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const nodemailer = require("nodemailer");
-const path = require("path");
-const hbs = require("nodemailer-express-handlebars");
-
-// Application Setup
-const PORT = process.env.PORT;
-const EMAIL = process.env.EMAIL;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+/* 
+------------------ 
+Server Setup
+------------------ 
+*/
 const app = express();
+const PORT = process.env.PORT;
+// Load Routes
+const mailRouter = require('./routes/mail.route');
 
+/* 
+------------------ 
+Express Middleware
+------------------ 
+*/
+// Enable cors for the client
+app.use(cors());
+// Use bodyParser 
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
     extended: true,
   })
 );
-app.use(cors());
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL,
-    pass: EMAIL_PASS,
-  },
+// load static files
+app.use(express.static(path.join(__dirname, 'public')));
+// Use Routes
+app.use('/mail', mailRouter);
+app.use((req, res, next) => {
+  res.status(404).sendFile(path.join(__dirname, 'public/404.html'));
 });
 
-transporter.use(
-  "compile",
-  hbs({
-    // viewEngine: "express-handlebars",
-    // viewPath: "./views/",
-    viewEngine: {
-      extName: ".hbs",
-      partialsDir: path.resolve(__dirname, "./views/"),
-      defaultLayout: false,
-      // partialsDir: [
-      //   //  path to your partials
-      //   path.join(__dirname, "./views/partials"),
-      // ],
-    },
-
-    viewPath: path.resolve(__dirname, "./views/"),
-
-    extName: ".hbs",
-  })
-);
-
-// Route Definitions
-app.post("/send-mail", sendMail);
-
-function sendMail(request, response) {
-  const participant = request.body;
-  const mailOptions = {
-    from: participant.email,
-    to: EMAIL,
-    subject: `${participant.subject} - From ${participant.firstName} ${participant.lastName}`,
-    template: "index",
-    context: { participant: participant, received: new Date() },
-  };
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-      response.json({ status: false });
-    } else {
-      console.log("Email sent: " + info.response);
-      sendResponse(participant);
-      response.json({ status: true });
-    }
-  });
-}
-
-function sendResponse(params) {
-  const mailOptions = {
-    from: EMAIL,
-    to: params.email,
-    subject: `Thank you ${params.firstName} for contacting me`,
-    template: "response",
-    context: { participant: params },
-  };
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-      response.json({ status: false });
-    } else {
-      console.log("Email sent: " + info.response);
-      // response.json({ status: true });
-    }
-  });
-}
-
-// Make sure the server is listening for requests
-app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
+// App Start
+app.listen(PORT, () => {
+  console.log('======================================');
+  console.info(`Server started on port: ${PORT}`);
+});
