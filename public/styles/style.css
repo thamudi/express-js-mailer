@@ -47,6 +47,13 @@ main {
     font-size : small;
 }
 
+#quote {
+    width     : 35vw;
+    word-break: break-word;
+}
+
+
+
 /* TODO: enable this glitch effect */
 
 /* 
